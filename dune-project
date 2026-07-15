@@ -30,6 +30,22 @@
   ))
 
 (package
+ (name ppx_deriving_yamlx)
+ (synopsis "YAMLx PPX")
+ (description "Deriving conversion functions to and from yaml for your OCaml types using YAMLx.")
+ (tags ("ppx" "deriver" "yaml"))
+ (depends
+  yamlx
+  (alcotest :with-test)
+  (mdx (and :with-test (>= 2.4.1)))
+  (ppx_deriving :with-test) ; dune still puts this in META file ...
+  (ocaml
+   (>= 4.08.1))
+  (ppxlib
+   (>= 0.36.0))
+  ))
+
+(package
  (name ppx_deriving_ezjsonm)
  (synopsis "Ezjsonm PPX")
  (description "Deriving conversion functions to and from JSON for your OCaml types.")

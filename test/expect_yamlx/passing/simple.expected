@@ -1,0 +1,320 @@
+type var =
+  | Hello 
+  | World of string [@@deriving yamlx]
+include
+  struct
+    let var_to_yamlx =
+      function
+      | Hello ->
+          YAMLx.Map
+            (YAMLx.zero_loc,
+              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "Hello")),
+                 (YAMLx.Seq (YAMLx.zero_loc, [])))])
+      | World arg0 ->
+          YAMLx.Map
+            (YAMLx.zero_loc,
+              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "World")),
+                 (YAMLx.Seq
+                    (YAMLx.zero_loc,
+                      [((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)))
+                         arg0])))])
+    let var_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, (_, YAMLx.String (_, "Hello"), YAMLx.Seq (_, []))::[])
+          -> Stdlib.Result.Ok Hello
+      | YAMLx.Map
+          (_, (_, YAMLx.String (_, "World"), YAMLx.Seq (_, arg0::[]))::[]) ->
+          ((function
+            | YAMLx.String (_, x) -> Ok x
+            | _ ->
+                Error
+                  (`Msg "Was expecting 'string' but got a different type"))
+             arg0)
+            >>= ((fun arg0 -> Stdlib.Result.Ok (World arg0)))
+      | _ -> Stdlib.Error (`Msg "no match for this variant expression")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type poly_var = [ `Hello  | `World of string ][@@deriving yamlx]
+include
+  struct
+    let poly_var_to_yamlx =
+      function
+      | `Hello ->
+          YAMLx.Map
+            (YAMLx.zero_loc,
+              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "Hello")),
+                 (YAMLx.Seq (YAMLx.zero_loc, [])))])
+      | `World x ->
+          ((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)) x) |>
+            ((fun x ->
+                YAMLx.Map
+                  (YAMLx.zero_loc,
+                    [(YAMLx.zero_loc,
+                       (YAMLx.String (YAMLx.zero_loc, "World")),
+                       (YAMLx.Seq (YAMLx.zero_loc, [x])))])))
+    let poly_var_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, (_, YAMLx.String (_, "Hello"), YAMLx.Seq (_, []))::[])
+          -> Stdlib.Result.Ok `Hello
+      | YAMLx.Map
+          (_, (_, YAMLx.String (_, "World"), YAMLx.Seq (_, x::[]))::[]) ->
+          ((function
+            | YAMLx.String (_, x) -> Ok x
+            | _ ->
+                Error
+                  (`Msg "Was expecting 'string' but got a different type")) x)
+            >>= ((fun x -> Stdlib.Result.Ok (`World x)))
+      | _ -> Error (`Msg "failed converting variant")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type a = {
+  x: [ `Simple  | `Example ] }[@@deriving yamlx]
+include
+  struct
+    let a_to_yamlx (x : a) =
+      YAMLx.Map
+        (YAMLx.zero_loc,
+          (Stdlib.List.filter_map (fun x -> x)
+             [Some
+                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "x")),
+                  (((function
+                     | `Simple ->
+                         YAMLx.Map
+                           (YAMLx.zero_loc,
+                             [(YAMLx.zero_loc,
+                                (YAMLx.String (YAMLx.zero_loc, "Simple")),
+                                (YAMLx.Seq (YAMLx.zero_loc, [])))])
+                     | `Example ->
+                         YAMLx.Map
+                           (YAMLx.zero_loc,
+                             [(YAMLx.zero_loc,
+                                (YAMLx.String (YAMLx.zero_loc, "Example")),
+                                (YAMLx.Seq (YAMLx.zero_loc, [])))]))) 
+                     x.x))]))
+    let a_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, xs) ->
+          let rec loop xs (arg0 as _state) =
+            match xs with
+            | (_, YAMLx.String (_, "x"), x)::xs ->
+                loop xs
+                  ((let (>>=) v f =
+                      match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+                    function
+                    | YAMLx.Map
+                        (_,
+                         (_, YAMLx.String (_, "Simple"), YAMLx.Seq (_, []))::[])
+                        -> Stdlib.Result.Ok `Simple
+                    | YAMLx.Map
+                        (_,
+                         (_, YAMLx.String (_, "Example"), YAMLx.Seq (_, []))::[])
+                        -> Stdlib.Result.Ok `Example
+                    | _ -> Error (`Msg "failed converting variant")) x)
+            | [] -> arg0 >>= ((fun arg0 -> Ok { x = arg0 }))
+            | (_, x, _)::_ ->
+                Error
+                  (`Msg
+                     ("Failed to find the case for: " ^ (YAMLx.Value.show x))) in
+          loop xs (Error (`Msg "Didn't find the function for key: x"))
+      | _ ->
+          Error (`Msg "Failed building a key-value object expecting a list")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type t = {
+  name: string ;
+  age: int option }[@@deriving yamlx]
+include
+  struct
+    let to_yamlx (x : t) =
+      YAMLx.Map
+        (YAMLx.zero_loc,
+          (Stdlib.List.filter_map (fun x -> x)
+             [Some
+                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "name")),
+                  (((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)))
+                     x.name));
+             Some
+               (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+                 (((function
+                    | None -> YAMLx.Null YAMLx.zero_loc
+                    | Some t ->
+                        ((fun (x : int) ->
+                            YAMLx.Int (YAMLx.zero_loc, (Int64.of_int x)))) t))
+                    x.age))]))
+    let of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, xs) ->
+          let rec loop xs ((arg0, arg1) as _state) =
+            match xs with
+            | (_, YAMLx.String (_, "name"), x)::xs ->
+                loop xs
+                  (((function
+                     | YAMLx.String (_, x) -> Ok x
+                     | _ ->
+                         Error
+                           (`Msg
+                              "Was expecting 'string' but got a different type"))
+                      x), arg1)
+            | (_, YAMLx.String (_, "age"), x)::xs ->
+                loop xs
+                  (arg0,
+                    ((function
+                      | YAMLx.Null _ -> Ok None
+                      | x ->
+                          ((function
+                            | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                            | _ ->
+                                Error
+                                  (`Msg
+                                     "Was expecting 'int' but got a different type"))
+                             x)
+                            >>= ((fun x -> Ok (Some x)))) x))
+            | [] ->
+                arg1 >>=
+                  ((fun arg1 ->
+                      arg0 >>= (fun arg0 -> Ok { name = arg0; age = arg1 })))
+            | (_, x, _)::_ ->
+                Error
+                  (`Msg
+                     ("Failed to find the case for: " ^ (YAMLx.Value.show x))) in
+          loop xs
+            ((Error (`Msg "Didn't find the function for key: name")),
+              (Ok None))
+      | _ ->
+          Error (`Msg "Failed building a key-value object expecting a list")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type u = {
+  name: string [@default "Una"]}[@@deriving to_yamlx]
+include
+  struct
+    let u_to_yamlx (x : u) =
+      YAMLx.Map
+        (YAMLx.zero_loc,
+          (Stdlib.List.filter_map (fun x -> x)
+             [((fun x ->
+                  if Stdlib.(=) x "Una"
+                  then None
+                  else
+                    Some
+                      (YAMLx.zero_loc,
+                        (YAMLx.String (YAMLx.zero_loc, "name")),
+                        (((fun (x : string) ->
+                             YAMLx.String (YAMLx.zero_loc, x))) x)))) 
+                x.name]))
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type v = {
+  age: int [@key "AGE"][@default 10]}[@@deriving of_yamlx]
+include
+  struct
+    let v_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, xs) ->
+          let rec loop xs (arg0 as _state) =
+            match xs with
+            | (_, YAMLx.String (_, "AGE"), x)::xs ->
+                loop xs
+                  ((function
+                    | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                    | _ ->
+                        Error
+                          (`Msg
+                             "Was expecting 'int' but got a different type"))
+                     x)
+            | [] -> arg0 >>= ((fun arg0 -> Ok { age = arg0 }))
+            | (_, x, _)::_ ->
+                Error
+                  (`Msg
+                     ("Failed to find the case for: " ^ (YAMLx.Value.show x))) in
+          loop xs (Ok 10)
+      | _ ->
+          Error (`Msg "Failed building a key-value object expecting a list")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type w =
+  {
+  age: int
+    [@to_yamlx
+      fun i -> YAMLx.Float (YAMLx.zero_loc, (float_of_int (i - 10)))]}
+[@@deriving yamlx]
+include
+  struct
+    let w_to_yamlx (x : w) =
+      YAMLx.Map
+        (YAMLx.zero_loc,
+          (Stdlib.List.filter_map (fun x -> x)
+             [Some
+                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+                  (((fun i ->
+                       YAMLx.Float (YAMLx.zero_loc, (float_of_int (i - 10)))))
+                     x.age))]))
+    let w_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, xs) ->
+          let rec loop xs (arg0 as _state) =
+            match xs with
+            | (_, YAMLx.String (_, "age"), x)::xs ->
+                loop xs
+                  ((function
+                    | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                    | _ ->
+                        Error
+                          (`Msg
+                             "Was expecting 'int' but got a different type"))
+                     x)
+            | [] -> arg0 >>= ((fun arg0 -> Ok { age = arg0 }))
+            | (_, x, _)::_ ->
+                Error
+                  (`Msg
+                     ("Failed to find the case for: " ^ (YAMLx.Value.show x))) in
+          loop xs (Error (`Msg "Didn't find the function for key: age"))
+      | _ ->
+          Error (`Msg "Failed building a key-value object expecting a list")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
+type x =
+  {
+  age: int
+    [@of_yamlx
+      function
+      | YAMLx.Float (_, f) -> Ok (int_of_float (f +. 10.))
+      | _ -> Error (`Msg "Expected a YAMLx.Float")]}[@@deriving yamlx]
+include
+  struct
+    let x_to_yamlx (x : x) =
+      YAMLx.Map
+        (YAMLx.zero_loc,
+          (Stdlib.List.filter_map (fun x -> x)
+             [Some
+                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+                  (((fun (x : int) ->
+                       YAMLx.Int (YAMLx.zero_loc, (Int64.of_int x)))) 
+                     x.age))]))
+    let x_of_yamlx =
+      let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
+                                                                    "-26"] in
+      function
+      | YAMLx.Map (_, xs) ->
+          let rec loop xs (arg0 as _state) =
+            match xs with
+            | (_, YAMLx.String (_, "age"), x)::xs ->
+                loop xs
+                  ((function
+                    | YAMLx.Float (_, f) -> Ok (int_of_float (f +. 10.))
+                    | _ -> Error (`Msg "Expected a YAMLx.Float")) x)
+            | [] -> arg0 >>= ((fun arg0 -> Ok { age = arg0 }))
+            | (_, x, _)::_ ->
+                Error
+                  (`Msg
+                     ("Failed to find the case for: " ^ (YAMLx.Value.show x))) in
+          loop xs (Error (`Msg "Didn't find the function for key: age"))
+      | _ ->
+          Error (`Msg "Failed building a key-value object expecting a list")
+  end[@@ocaml.doc "@inline"][@@merlin.hide ]
