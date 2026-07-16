@@ -27,6 +27,7 @@
    (>= 4.08.1))
   (ppxlib
    (>= 0.36.0))
+  (ocamlformat (and (= 0.26.2) :with-dev-setup))
   ))
 
 (package
@@ -43,6 +44,7 @@
    (>= 4.08.1))
   (ppxlib
    (>= 0.36.0))
+  (ocamlformat (and (= 0.26.2) :with-dev-setup))
   ))
 
 (package
@@ -59,6 +61,7 @@
    (>= 4.08.1))
   (ppxlib
    (>= 0.36.0))
+  (ocamlformat (and (= 0.26.2) :with-dev-setup))
   ))
 
 (using mdx 0.4)
