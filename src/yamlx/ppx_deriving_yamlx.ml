@@ -80,13 +80,11 @@ module B : sig
     val to_ : (label_declaration, expression) Attribute.t
     val of_ : (label_declaration, expression) Attribute.t
   end
-end
-=
-  struct
-    let backend = "yaml"
-    let typename = "YAMLx.value"
-    let suf_to = "to_yamlx"
-    let suf_of = "of_yamlx"
+end = struct
+  let backend = "yaml"
+  let typename = "YAMLx.value"
+  let suf_to = "to_yamlx"
+  let suf_of = "of_yamlx"
 
   module Attrs = struct
     let key =
@@ -114,8 +112,7 @@ end
         Ast_pattern.(single_expr_payload __)
         (fun x -> x)
   end
-
-  end
+end
 
 module Value = struct
   let backend_constructor =
@@ -148,18 +145,29 @@ module Value = struct
   let rec type_to_expr typ =
     let loc = typ.ptyp_loc in
     match typ with
-    | [%type: int] -> [%expr fun (x : int) -> YAMLx.Int (YAMLx.zero_loc, Int64.of_int x)]
-    | [%type: float] -> [%expr fun (x : float) -> YAMLx.Float (YAMLx.zero_loc, x)]
-    | [%type: string] -> [%expr fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)]
+    | [%type: int] ->
+        [%expr fun (x : int) -> YAMLx.Int (YAMLx.zero_loc, Int64.of_int x)]
+    | [%type: float] ->
+        [%expr fun (x : float) -> YAMLx.Float (YAMLx.zero_loc, x)]
+    | [%type: string] ->
+        [%expr fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)]
     | [%type: bool] -> [%expr fun (x : bool) -> YAMLx.Bool (YAMLx.zero_loc, x)]
-    | [%type: char] -> [%expr fun (x : char) -> YAMLx.String (YAMLx.zero_loc, (String.make 1 x))]
+    | [%type: char] ->
+        [%expr fun (x : char) -> YAMLx.String (YAMLx.zero_loc, String.make 1 x)]
     | [%type: [%t? typ] list] ->
-        [%expr fun x -> YAMLx.Seq (YAMLx.zero_loc, (List.map [%e type_to_expr typ] x))]
+        [%expr
+          fun x -> YAMLx.Seq (YAMLx.zero_loc, List.map [%e type_to_expr typ] x)]
     | [%type: [%t? typ] array] ->
-        [%expr fun x -> YAMLx.Seq (YAMLx.zero_loc, Array.(to_list (map [%e type_to_expr typ]) x))]
+        [%expr
+          fun x ->
+            YAMLx.Seq
+              (YAMLx.zero_loc, Array.(to_list (map [%e type_to_expr typ]) x))]
     | [%type: [%t? typ] option] ->
         (* collapses options? what if `int option option` *)
-        [%expr function None -> YAMLx.Null YAMLx.zero_loc | Some t -> [%e type_to_expr typ] t]
+        [%expr
+          function
+          | None -> YAMLx.Null YAMLx.zero_loc
+          | Some t -> [%e type_to_expr typ] t]
     (* When Yaml.value or Ezjsonm.value is found in the type declaration *)
     | { ptyp_desc = Ptyp_constr ({ txt = lid; _ }, []); _ }
       when Longident.name lid = B.typename ->
@@ -185,14 +193,15 @@ module Value = struct
         in
         let list_apps =
           [%expr
-            YAMLx.Seq (YAMLx.zero_loc,
-              [%e
-                Ast_builder.Default.elist ~loc
-                  (List.mapi
-                     (fun i t ->
-                       Ast_builder.Default.eapply ~loc (type_to_expr t)
-                         [ Exp.ident (Located.lident ~loc (arg i)) ])
-                     typs)])]
+            YAMLx.Seq
+              ( YAMLx.zero_loc,
+                [%e
+                  Ast_builder.Default.elist ~loc
+                    (List.mapi
+                       (fun i t ->
+                         Ast_builder.Default.eapply ~loc (type_to_expr t)
+                           [ Exp.ident (Located.lident ~loc (arg i)) ])
+                       typs)] )]
         in
         [%expr fun [%p tuple_pattern] -> [%e list_apps]]
     | { ptyp_desc = Ptyp_variant (row_fields, _, _); _ } -> (
@@ -206,7 +215,15 @@ module Value = struct
                   | Rtag (label, true, []) ->
                       Exp.case
                         (Pat.variant label.txt None)
-                        [%expr YAMLx.Map (YAMLx.zero_loc, [ (YAMLx.zero_loc, YAMLx.String (YAMLx.zero_loc, [%e estring ~loc label.txt]), YAMLx.Seq (YAMLx.zero_loc, [])) ])]
+                        [%expr
+                          YAMLx.Map
+                            ( YAMLx.zero_loc,
+                              [
+                                ( YAMLx.zero_loc,
+                                  YAMLx.String
+                                    (YAMLx.zero_loc, [%e estring ~loc label.txt]),
+                                  YAMLx.Seq (YAMLx.zero_loc, []) );
+                              ] )]
                   | Rtag (label, false, [ { ptyp_desc = Ptyp_tuple typs; _ } ])
                     ->
                       Exp.case
@@ -215,26 +232,36 @@ module Value = struct
                               (Helpers.ptuple ~loc
                                  (List.mapi (fun i _ -> pvar ~loc (arg i)) typs))))
                         [%expr
-                          YAMLx.Map (YAMLx.zero_loc,
-                            [
-                              ( YAMLx.zero_loc,
-                                YAMLx.String (YAMLx.zero_loc, [%e estring ~loc label.txt]),
-                                YAMLx.Seq (YAMLx.zero_loc,
-                                  [%e
-                                    elist ~loc
-                                      (List.mapi
-                                         (fun i t ->
-                                           [%expr
-                                             [%e type_to_expr t]
-                                               [%e evar ~loc (arg i)]])
-                                         typs)]) );
-                            ])]
+                          YAMLx.Map
+                            ( YAMLx.zero_loc,
+                              [
+                                ( YAMLx.zero_loc,
+                                  YAMLx.String
+                                    (YAMLx.zero_loc, [%e estring ~loc label.txt]),
+                                  YAMLx.Seq
+                                    ( YAMLx.zero_loc,
+                                      [%e
+                                        elist ~loc
+                                          (List.mapi
+                                             (fun i t ->
+                                               [%expr
+                                                 [%e type_to_expr t]
+                                                   [%e evar ~loc (arg i)]])
+                                             typs)] ) );
+                              ] )]
                   | Rtag (label, false, [ t ]) ->
                       Exp.case
                         (Pat.variant ~loc label.txt (Some (pvar ~loc "x")))
                         [%expr
                           [%e type_to_expr t] [%e evar ~loc "x"] |> fun x ->
-                          YAMLx.Map (YAMLx.zero_loc, [YAMLx.zero_loc, YAMLx.String (YAMLx.zero_loc, [%e estring ~loc label.txt]), YAMLx.Seq (YAMLx.zero_loc, [ x ]) ])]
+                          YAMLx.Map
+                            ( YAMLx.zero_loc,
+                              [
+                                ( YAMLx.zero_loc,
+                                  YAMLx.String
+                                    (YAMLx.zero_loc, [%e estring ~loc label.txt]),
+                                  YAMLx.Seq (YAMLx.zero_loc, [ x ]) );
+                              ] )]
                   | Rtag (label, _, _) ->
                       raise (Failed_to_derive (label.loc, "Rtag"))
                   | Rinherit ctype ->
@@ -320,7 +347,10 @@ module Value = struct
                   [%expr
                     Some
                       ( YAMLx.zero_loc,
-                        YAMLx.String (YAMLx.zero_loc, [%e Ast_builder.Default.estring ~loc:pld_loc name]),
+                        YAMLx.String
+                          ( YAMLx.zero_loc,
+                            [%e Ast_builder.Default.estring ~loc:pld_loc name]
+                          ),
                         [%e func] [%e field] )]
               | Some d ->
                   [%expr
@@ -329,7 +359,11 @@ module Value = struct
                       else
                         Some
                           ( YAMLx.zero_loc,
-                            YAMLx.String (YAMLx.zero_loc, [%e Ast_builder.Default.estring ~loc:pld_loc name]),
+                            YAMLx.String
+                              ( YAMLx.zero_loc,
+                                [%e
+                                  Ast_builder.Default.estring ~loc:pld_loc name]
+                              ),
                             [%e func] x ))
                       [%e field]]]])
         fs
@@ -337,10 +371,11 @@ module Value = struct
     let fs = fields_to_expr fields in
     [%expr
       fun (x : [%t typ]) ->
-        YAMLx.Map (YAMLx.zero_loc,
-          (Stdlib.List.filter_map
-             (fun x -> x)
-             [%e Ast_builder.Default.elist ~loc fs]))]
+        YAMLx.Map
+          ( YAMLx.zero_loc,
+            Stdlib.List.filter_map
+              (fun x -> x)
+              [%e Ast_builder.Default.elist ~loc fs] )]
 
   let type_decl_to_type type_decl =
     let loc = type_decl.ptype_loc in
@@ -424,7 +459,9 @@ module Value = struct
           "float"
     | [%type: string] ->
         mk_pat_match ~loc
-          [ ([%pat? YAMLx.String (_, [%p argument])], [%expr Ok [%e expr_arg]]) ]
+          [
+            ([%pat? YAMLx.String (_, [%p argument])], [%expr Ok [%e expr_arg]]);
+          ]
           "string"
     | [%type: bool] ->
         mk_pat_match ~loc
@@ -432,7 +469,10 @@ module Value = struct
           "bool"
     | [%type: char] ->
         mk_pat_match ~loc
-          [ ([%pat? YAMLx.String (_, [%p argument])], [%expr Ok [%e expr_arg].[0]]) ]
+          [
+            ( [%pat? YAMLx.String (_, [%p argument])],
+              [%expr Ok [%e expr_arg].[0]] );
+          ]
           "char"
     | [%type: [%t? typ] list] ->
         mk_pat_match ~loc
@@ -455,10 +495,11 @@ module Value = struct
                 let ( >>= ) v f =
                   match v with Ok v -> f v | Error _ as e -> e
                 in
-                YAMLx.Seq (YAMLx.zero_loc,
-                  Array.(
-                    to_list ([%e Helpers.map_bind ~loc] [%e type_to_expr typ])))]
-            );
+                YAMLx.Seq
+                  ( YAMLx.zero_loc,
+                    Array.(
+                      to_list ([%e Helpers.map_bind ~loc] [%e type_to_expr typ]))
+                  )] );
           ]
           "array"
     | [%type: [%t? typ] option] ->
@@ -487,12 +528,13 @@ module Value = struct
     | { ptyp_desc = Ptyp_tuple typs; _ } ->
         let list_pat =
           [%pat?
-            YAMLx.Seq (_,
-              [%p
-                plist ~loc
-                  (List.mapi
-                     (fun i t -> Pat.var { loc = t.ptyp_loc; txt = arg i })
-                     typs)])]
+            YAMLx.Seq
+              ( _,
+                [%p
+                  plist ~loc
+                    (List.mapi
+                       (fun i t -> Pat.var { loc = t.ptyp_loc; txt = arg i })
+                       typs)] )]
         in
         let funcs =
           List.mapi
@@ -521,7 +563,14 @@ module Value = struct
               match field.prf_desc with
               | Rtag (name, true, []) ->
                   Exp.case
-                    [%pat? YAMLx.Map (_, [ (_, YAMLx.String (_, [%p pstring ~loc name.txt]), YAMLx.Seq (_, [])) ])]
+                    [%pat?
+                      YAMLx.Map
+                        ( _,
+                          [
+                            ( _,
+                              YAMLx.String (_, [%p pstring ~loc name.txt]),
+                              YAMLx.Seq (_, []) );
+                          ] )]
                     [%expr Stdlib.Result.Ok [%e Exp.variant name.txt None]]
               | Rtag (name, false, [ { ptyp_desc = Ptyp_tuple typs; _ } ]) ->
                   let e =
@@ -540,21 +589,30 @@ module Value = struct
                   in
                   Exp.case
                     [%pat?
-                      YAMLx.Map (_,
-                        [
-                          ( _,
-                            YAMLx.String (_, [%p pstring ~loc name.txt]),
-                            YAMLx.Seq (_,
-                              [%p
-                                plist ~loc
-                                  (List.mapi
-                                     (fun i _ -> pvar ~loc (arg i))
-                                     typs)]) );
-                        ])]
+                      YAMLx.Map
+                        ( _,
+                          [
+                            ( _,
+                              YAMLx.String (_, [%p pstring ~loc name.txt]),
+                              YAMLx.Seq
+                                ( _,
+                                  [%p
+                                    plist ~loc
+                                      (List.mapi
+                                         (fun i _ -> pvar ~loc (arg i))
+                                         typs)] ) );
+                          ] )]
                     e
               | Rtag (name, false, [ t ]) ->
                   Exp.case
-                    [%pat? YAMLx.Map (_, [ (_, YAMLx.String (_, [%p pstring ~loc name.txt]), YAMLx.Seq (_, [ x ])) ])]
+                    [%pat?
+                      YAMLx.Map
+                        ( _,
+                          [
+                            ( _,
+                              YAMLx.String (_, [%p pstring ~loc name.txt]),
+                              YAMLx.Seq (_, [ x ]) );
+                          ] )]
                     [%expr
                       [%e of_backend_type_to_expr None t] x >>= fun x ->
                       Stdlib.Result.Ok
@@ -676,7 +734,9 @@ module Value = struct
            else
              Exp.case
                [%pat? (_, x, _) :: _]
-               [%expr Error (`Msg ("Failed to find the case for: " ^ YAMLx.Value.show x))]);
+               [%expr
+                 Error
+                   (`Msg ("Failed to find the case for: " ^ YAMLx.Value.show x))]);
         ]
     in
     let option_to_none t =
@@ -786,18 +846,20 @@ module Value = struct
                            in
                            Exp.case
                              [%pat?
-                               YAMLx.Map (_,
-                                 [
-                                   ( _,
-                                   YAMLx.String (_, [%p pstring ~loc name]),
-                                     YAMLx.Seq (_,
-                                       [%p
-                                         plist ~loc
-                                           (List.mapi
-                                              (fun i _ ->
-                                                pvar ~loc (Helpers.arg i))
-                                              args)]) );
-                                 ])]
+                               YAMLx.Map
+                                 ( _,
+                                   [
+                                     ( _,
+                                       YAMLx.String (_, [%p pstring ~loc name]),
+                                       YAMLx.Seq
+                                         ( _,
+                                           [%p
+                                             plist ~loc
+                                               (List.mapi
+                                                  (fun i _ ->
+                                                    pvar ~loc (Helpers.arg i))
+                                                  args)] ) );
+                                   ] )]
                              (monad_fold
                                 (of_backend_type_to_expr None)
                                 [%expr
@@ -919,22 +981,26 @@ module Value = struct
                              in
                              Exp.case (pconstruct p pat_arg)
                                [%expr
-                                 YAMLx.Map (YAMLx.zero_loc,
-                                   [
-                                     ( YAMLx.zero_loc,
-                                       YAMLx.String (YAMLx.zero_loc, [%e estring ~loc name]),
-                                       YAMLx.Seq (YAMLx.zero_loc,
-                                         [%e
-                                           elist ~loc
-                                             (List.mapi
-                                                (fun i t ->
-                                                  [%expr
-                                                    [%e type_to_expr t]
-                                                      [%e
-                                                        evar ~loc
-                                                          (Helpers.arg i)]])
-                                                args)]) );
-                                   ])]
+                                 YAMLx.Map
+                                   ( YAMLx.zero_loc,
+                                     [
+                                       ( YAMLx.zero_loc,
+                                         YAMLx.String
+                                           ( YAMLx.zero_loc,
+                                             [%e estring ~loc name] ),
+                                         YAMLx.Seq
+                                           ( YAMLx.zero_loc,
+                                             [%e
+                                               elist ~loc
+                                                 (List.mapi
+                                                    (fun i t ->
+                                                      [%expr
+                                                        [%e type_to_expr t]
+                                                          [%e
+                                                            evar ~loc
+                                                              (Helpers.arg i)]])
+                                                    args)] ) );
+                                     ] )]
                          | _ -> failwith "Not implemented!")
                        constructors
                    in
