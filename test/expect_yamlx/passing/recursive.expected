@@ -4,40 +4,42 @@ type t = {
 include
   struct
     let rec to_yamlx (x : t) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [Some
-                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "name")),
-                  (((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)))
-                     x.name));
+                (YAMLx.zero_loc,
+                  (YAMLx.Value.String (YAMLx.zero_loc, "name")),
+                  (((fun (x : string) ->
+                       YAMLx.Value.String (YAMLx.zero_loc, x))) x.name));
              Some
-               (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "children")),
+               (YAMLx.zero_loc,
+                 (YAMLx.Value.String (YAMLx.zero_loc, "children")),
                  (((fun x ->
-                      YAMLx.Seq
+                      YAMLx.Value.Seq
                         (YAMLx.zero_loc, (List.map (fun x -> to_yamlx x) x))))
                     x.children))]))
     let rec of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs ((arg0, arg1) as _state) =
             match xs with
-            | (_, YAMLx.String (_, "name"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "name"), x)::xs ->
                 loop xs
                   (((function
-                     | YAMLx.String (_, x) -> Ok x
+                     | YAMLx.Value.String (_, x) -> Ok x
                      | _ ->
                          Error
                            (`Msg
                               "Was expecting 'string' but got a different type"))
                       x), arg1)
-            | (_, YAMLx.String (_, "children"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "children"), x)::xs ->
                 loop xs
                   (arg0,
                     ((function
-                      | YAMLx.Seq (_, lst) ->
+                      | YAMLx.Value.Seq (_, lst) ->
                           let (>>=) v f =
                             match v with | Ok v -> f v | Error _ as e -> e in
                           ((fun f lst ->

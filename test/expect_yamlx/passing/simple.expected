@@ -6,28 +6,35 @@ include
     let var_to_yamlx =
       function
       | Hello ->
-          YAMLx.Map
+          YAMLx.Value.Map
             (YAMLx.zero_loc,
-              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "Hello")),
-                 (YAMLx.Seq (YAMLx.zero_loc, [])))])
+              [(YAMLx.zero_loc,
+                 (YAMLx.Value.String (YAMLx.zero_loc, "Hello")),
+                 (YAMLx.Value.Seq (YAMLx.zero_loc, [])))])
       | World arg0 ->
-          YAMLx.Map
+          YAMLx.Value.Map
             (YAMLx.zero_loc,
-              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "World")),
-                 (YAMLx.Seq
+              [(YAMLx.zero_loc,
+                 (YAMLx.Value.String (YAMLx.zero_loc, "World")),
+                 (YAMLx.Value.Seq
                     (YAMLx.zero_loc,
-                      [((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)))
-                         arg0])))])
+                      [((fun (x : string) ->
+                           YAMLx.Value.String (YAMLx.zero_loc, x))) arg0])))])
     let var_of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, (_, YAMLx.String (_, "Hello"), YAMLx.Seq (_, []))::[])
+      | YAMLx.Value.Map
+          (_,
+           (_, YAMLx.Value.String (_, "Hello"), YAMLx.Value.Seq (_, []))::[])
           -> Stdlib.Result.Ok Hello
-      | YAMLx.Map
-          (_, (_, YAMLx.String (_, "World"), YAMLx.Seq (_, arg0::[]))::[]) ->
+      | YAMLx.Value.Map
+          (_,
+           (_, YAMLx.Value.String (_, "World"), YAMLx.Value.Seq
+            (_, arg0::[]))::[])
+          ->
           ((function
-            | YAMLx.String (_, x) -> Ok x
+            | YAMLx.Value.String (_, x) -> Ok x
             | _ ->
                 Error
                   (`Msg "Was expecting 'string' but got a different type"))
@@ -41,28 +48,32 @@ include
     let poly_var_to_yamlx =
       function
       | `Hello ->
-          YAMLx.Map
+          YAMLx.Value.Map
             (YAMLx.zero_loc,
-              [(YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "Hello")),
-                 (YAMLx.Seq (YAMLx.zero_loc, [])))])
+              [(YAMLx.zero_loc,
+                 (YAMLx.Value.String (YAMLx.zero_loc, "Hello")),
+                 (YAMLx.Value.Seq (YAMLx.zero_loc, [])))])
       | `World x ->
-          ((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)) x) |>
+          ((fun (x : string) -> YAMLx.Value.String (YAMLx.zero_loc, x)) x) |>
             ((fun x ->
-                YAMLx.Map
+                YAMLx.Value.Map
                   (YAMLx.zero_loc,
                     [(YAMLx.zero_loc,
-                       (YAMLx.String (YAMLx.zero_loc, "World")),
-                       (YAMLx.Seq (YAMLx.zero_loc, [x])))])))
+                       (YAMLx.Value.String (YAMLx.zero_loc, "World")),
+                       (YAMLx.Value.Seq (YAMLx.zero_loc, [x])))])))
     let poly_var_of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, (_, YAMLx.String (_, "Hello"), YAMLx.Seq (_, []))::[])
-          -> Stdlib.Result.Ok `Hello
-      | YAMLx.Map
-          (_, (_, YAMLx.String (_, "World"), YAMLx.Seq (_, x::[]))::[]) ->
+      | YAMLx.Value.Map
+          (_, (_, YAMLx.Value.String (_, "Hello"), YAMLx.Seq (_, []))::[]) ->
+          Stdlib.Result.Ok `Hello
+      | YAMLx.Value.Map
+          (_,
+           (_, YAMLx.Value.String (_, "World"), YAMLx.Value.Seq (_, x::[]))::[])
+          ->
           ((function
-            | YAMLx.String (_, x) -> Ok x
+            | YAMLx.Value.String (_, x) -> Ok x
             | _ ->
                 Error
                   (`Msg "Was expecting 'string' but got a different type")) x)
@@ -74,45 +85,49 @@ type a = {
 include
   struct
     let a_to_yamlx (x : a) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [Some
-                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "x")),
+                (YAMLx.zero_loc, (YAMLx.Value.String (YAMLx.zero_loc, "x")),
                   (((function
                      | `Simple ->
-                         YAMLx.Map
+                         YAMLx.Value.Map
                            (YAMLx.zero_loc,
                              [(YAMLx.zero_loc,
-                                (YAMLx.String (YAMLx.zero_loc, "Simple")),
-                                (YAMLx.Seq (YAMLx.zero_loc, [])))])
+                                (YAMLx.Value.String
+                                   (YAMLx.zero_loc, "Simple")),
+                                (YAMLx.Value.Seq (YAMLx.zero_loc, [])))])
                      | `Example ->
-                         YAMLx.Map
+                         YAMLx.Value.Map
                            (YAMLx.zero_loc,
                              [(YAMLx.zero_loc,
-                                (YAMLx.String (YAMLx.zero_loc, "Example")),
-                                (YAMLx.Seq (YAMLx.zero_loc, [])))]))) 
+                                (YAMLx.Value.String
+                                   (YAMLx.zero_loc, "Example")),
+                                (YAMLx.Value.Seq (YAMLx.zero_loc, [])))])))
                      x.x))]))
     let a_of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs (arg0 as _state) =
             match xs with
-            | (_, YAMLx.String (_, "x"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "x"), x)::xs ->
                 loop xs
                   ((let (>>=) v f =
                       match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
                     function
-                    | YAMLx.Map
+                    | YAMLx.Value.Map
                         (_,
-                         (_, YAMLx.String (_, "Simple"), YAMLx.Seq (_, []))::[])
+                         (_, YAMLx.Value.String (_, "Simple"), YAMLx.Seq
+                          (_, []))::[])
                         -> Stdlib.Result.Ok `Simple
-                    | YAMLx.Map
+                    | YAMLx.Value.Map
                         (_,
-                         (_, YAMLx.String (_, "Example"), YAMLx.Seq (_, []))::[])
+                         (_, YAMLx.Value.String (_, "Example"), YAMLx.Seq
+                          (_, []))::[])
                         -> Stdlib.Result.Ok `Example
                     | _ -> Error (`Msg "failed converting variant")) x)
             | [] -> arg0 >>= ((fun arg0 -> Ok { x = arg0 }))
@@ -130,45 +145,47 @@ type t = {
 include
   struct
     let to_yamlx (x : t) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [Some
-                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "name")),
-                  (((fun (x : string) -> YAMLx.String (YAMLx.zero_loc, x)))
-                     x.name));
+                (YAMLx.zero_loc,
+                  (YAMLx.Value.String (YAMLx.zero_loc, "name")),
+                  (((fun (x : string) ->
+                       YAMLx.Value.String (YAMLx.zero_loc, x))) x.name));
              Some
-               (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+               (YAMLx.zero_loc, (YAMLx.Value.String (YAMLx.zero_loc, "age")),
                  (((function
-                    | None -> YAMLx.Null YAMLx.zero_loc
+                    | None -> YAMLx.Value.Null YAMLx.zero_loc
                     | Some t ->
                         ((fun (x : int) ->
-                            YAMLx.Int (YAMLx.zero_loc, (Int64.of_int x)))) t))
+                            YAMLx.Value.Int
+                              (YAMLx.zero_loc, (Int64.of_int x)))) t)) 
                     x.age))]))
     let of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs ((arg0, arg1) as _state) =
             match xs with
-            | (_, YAMLx.String (_, "name"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "name"), x)::xs ->
                 loop xs
                   (((function
-                     | YAMLx.String (_, x) -> Ok x
+                     | YAMLx.Value.String (_, x) -> Ok x
                      | _ ->
                          Error
                            (`Msg
                               "Was expecting 'string' but got a different type"))
                       x), arg1)
-            | (_, YAMLx.String (_, "age"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "age"), x)::xs ->
                 loop xs
                   (arg0,
                     ((function
-                      | YAMLx.Null _ -> Ok None
+                      | YAMLx.Value.Null _ -> Ok None
                       | x ->
                           ((function
-                            | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                            | YAMLx.Value.Int (_, x) -> Ok (Int64.to_int x)
                             | _ ->
                                 Error
                                   (`Msg
@@ -194,7 +211,7 @@ type u = {
 include
   struct
     let u_to_yamlx (x : u) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [((fun x ->
@@ -203,9 +220,9 @@ include
                   else
                     Some
                       (YAMLx.zero_loc,
-                        (YAMLx.String (YAMLx.zero_loc, "name")),
+                        (YAMLx.Value.String (YAMLx.zero_loc, "name")),
                         (((fun (x : string) ->
-                             YAMLx.String (YAMLx.zero_loc, x))) x)))) 
+                             YAMLx.Value.String (YAMLx.zero_loc, x))) x))))
                 x.name]))
   end[@@ocaml.doc "@inline"][@@merlin.hide ]
 type v = {
@@ -216,13 +233,13 @@ include
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs (arg0 as _state) =
             match xs with
-            | (_, YAMLx.String (_, "AGE"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "AGE"), x)::xs ->
                 loop xs
                   ((function
-                    | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                    | YAMLx.Value.Int (_, x) -> Ok (Int64.to_int x)
                     | _ ->
                         Error
                           (`Msg
@@ -246,11 +263,12 @@ type w =
 include
   struct
     let w_to_yamlx (x : w) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [Some
-                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+                (YAMLx.zero_loc,
+                  (YAMLx.Value.String (YAMLx.zero_loc, "age")),
                   (((fun i ->
                        YAMLx.Float (YAMLx.zero_loc, (float_of_int (i - 10)))))
                      x.age))]))
@@ -258,13 +276,13 @@ include
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs (arg0 as _state) =
             match xs with
-            | (_, YAMLx.String (_, "age"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "age"), x)::xs ->
                 loop xs
                   ((function
-                    | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                    | YAMLx.Value.Int (_, x) -> Ok (Int64.to_int x)
                     | _ ->
                         Error
                           (`Msg
@@ -289,22 +307,23 @@ type x =
 include
   struct
     let x_to_yamlx (x : x) =
-      YAMLx.Map
+      YAMLx.Value.Map
         (YAMLx.zero_loc,
           (Stdlib.List.filter_map (fun x -> x)
              [Some
-                (YAMLx.zero_loc, (YAMLx.String (YAMLx.zero_loc, "age")),
+                (YAMLx.zero_loc,
+                  (YAMLx.Value.String (YAMLx.zero_loc, "age")),
                   (((fun (x : int) ->
-                       YAMLx.Int (YAMLx.zero_loc, (Int64.of_int x)))) 
+                       YAMLx.Value.Int (YAMLx.zero_loc, (Int64.of_int x))))
                      x.age))]))
     let x_of_yamlx =
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs (arg0 as _state) =
             match xs with
-            | (_, YAMLx.String (_, "age"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "age"), x)::xs ->
                 loop xs
                   ((function
                     | YAMLx.Float (_, f) -> Ok (int_of_float (f +. 10.))

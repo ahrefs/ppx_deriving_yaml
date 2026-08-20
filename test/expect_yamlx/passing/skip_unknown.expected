@@ -7,23 +7,23 @@ include
       let (>>=) v f = match v with | Ok v -> f v | Error _ as e -> e[@@warning
                                                                     "-26"] in
       function
-      | YAMLx.Map (_, xs) ->
+      | YAMLx.Value.Map (_, xs) ->
           let rec loop xs ((arg0, arg1) as _state) =
             match xs with
-            | (_, YAMLx.String (_, "name"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "name"), x)::xs ->
                 loop xs
                   (((function
-                     | YAMLx.String (_, x) -> Ok x
+                     | YAMLx.Value.String (_, x) -> Ok x
                      | _ ->
                          Error
                            (`Msg
                               "Was expecting 'string' but got a different type"))
                       x), arg1)
-            | (_, YAMLx.String (_, "age"), x)::xs ->
+            | (_, YAMLx.Value.String (_, "age"), x)::xs ->
                 loop xs
                   (arg0,
                     ((function
-                      | YAMLx.Int (_, x) -> Ok (Int64.to_int x)
+                      | YAMLx.Value.Int (_, x) -> Ok (Int64.to_int x)
                       | _ ->
                           Error
                             (`Msg
